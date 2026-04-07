@@ -1,0 +1,495 @@
+"use client"
+
+import { useMemo, useState } from "react"
+import useSWR, { mutate } from "swr"
+import { MoreHorizontal, Download, Loader2 } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+
+import {
+  getTickets,
+  ticketsToCsv,
+  updateTicketStatus,
+  type Ticket,
+  type TicketPriority,
+  type TicketStatus,
+} from "@/app/_lib/data-service"
+import TicketForm from "./TicketForm"
+import TicketModalButton from "./TicketModalButton"
+
+const statusOptions: TicketStatus[] = ["Open", "In Progress", "Resolved", "Closed"]
+const priorityOptions: TicketPriority[] = ["Low", "Medium", "High", "Urgent"]
+
+type ExportFormat = "csv" | "xlsx" | "pdf"
+type SortOption = "created_desc" | "created_asc"
+
+const descriptionPreview = (description: string | null) => {
+  const v = (description ?? "").trim().replaceAll(/\s+/g, " ")
+  if (!v) return "—"
+  return v.length > 90 ? `${v.slice(0, 90)}…` : v
+}
+
+const isTicketStatus = (value: string): value is TicketStatus => {
+  return (statusOptions as readonly string[]).includes(value)
+}
+
+const isTicketPriority = (value: string): value is TicketPriority => {
+  return (priorityOptions as readonly string[]).includes(value)
+}
+
+const statusBadgeClass = (status: TicketStatus) => {
+  if (status === "Open") return "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200"
+  if (status === "In Progress") return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200"
+  if (status === "Resolved") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
+  return "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+}
+
+const priorityBadgeClass = (priority: TicketPriority) => {
+  if (priority === "Urgent") return "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200"
+  if (priority === "High") return "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-200"
+  if (priority === "Medium") return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200"
+  return "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+}
+
+export default function TicketsTable() {
+  const { toast } = useToast()
+  const { data, error, isLoading } = useSWR<Ticket[]>("tickets", getTickets)
+  const [query, setQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<TicketStatus | "All">("All")
+  const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "All">("All")
+  const [sortBy, setSortBy] = useState<SortOption>("created_desc")
+  const [createOpen, setCreateOpen] = useState(false)
+  const [exporting, setExporting] = useState<ExportFormat | null>(null)
+
+  const filtered = useMemo(() => {
+    const all = data ?? []
+    const q = query.trim().toLowerCase()
+    return all.filter((t) => {
+      if (statusFilter !== "All" && t.status !== statusFilter) return false
+      if (priorityFilter !== "All" && t.priority !== priorityFilter) return false
+      if (!q) return true
+
+      const haystack = [
+        t.title,
+        t.description ?? "",
+        t.category,
+        t.status,
+        t.priority,
+        t.requester_name ?? "",
+        t.requester_email ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+
+      return haystack.includes(q)
+    })
+  }, [data, priorityFilter, query, statusFilter])
+
+  const sorted = useMemo(() => {
+    const copy = [...filtered]
+    copy.sort((a, b) => {
+      const da = a.created_at ? new Date(a.created_at).getTime() : 0
+      const db = b.created_at ? new Date(b.created_at).getTime() : 0
+      return sortBy === "created_desc" ? db - da : da - db
+    })
+    return copy
+  }, [filtered, sortBy])
+
+  const onUpdateStatus = async (id: number, next: TicketStatus) => {
+    try {
+      await updateTicketStatus(id, next)
+      await mutate("tickets")
+      toast({
+        title: "Updated",
+        description: `Ticket marked as ${next}.`,
+        variant: "default",
+      })
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update status. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const onExport = async () => {
+    try {
+      setExporting("csv")
+      const tickets = sorted
+      const csv = ticketsToCsv(tickets)
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `itx-helpdesk-tickets-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const onExportExcel = async () => {
+    try {
+      setExporting("xlsx")
+      const tickets = sorted
+      const rows = tickets.map((t) => ({
+        id: t.id,
+        date: t.created_at ? new Date(t.created_at) : "",
+        title: t.title,
+        description: t.description ?? "",
+        status: t.status,
+        priority: t.priority,
+        category: t.category,
+        requester_name: t.requester_name ?? "",
+        requester_email: t.requester_email ?? "",
+      }))
+
+      const xlsxModule = await import("xlsx")
+      const wb = xlsxModule.utils.book_new()
+      const ws = xlsxModule.utils.aoa_to_sheet([
+        ["ITXDesk.svg"],
+        ["ITX Helpdesk - Tickets Export"],
+        ["Generated", new Date().toLocaleString()],
+      ])
+      xlsxModule.utils.sheet_add_json(ws, rows, { origin: "A4" })
+      ws["!cols"] = [
+        { wch: 8 }, // id
+        { wch: 22 }, // date
+        { wch: 32 }, // title
+        { wch: 44 }, // description
+        { wch: 14 }, // status
+        { wch: 14 }, // priority
+        { wch: 16 }, // category
+        { wch: 22 }, // requester_name
+        { wch: 26 }, // requester_email
+      ]
+      ws["!rows"] = [{ hpt: 30 }, { hpt: 18 }, { hpt: 18 }]
+      xlsxModule.utils.book_append_sheet(wb, ws, "Tickets")
+      const array = xlsxModule.write(wb, { bookType: "xlsx", type: "array" })
+
+      const blob = new Blob([array], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `itx-helpdesk-tickets-${new Date().toISOString().slice(0, 10)}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const onExportPdf = async () => {
+    type JsPdfInstance = {
+      save: (filename: string) => void
+      setFontSize: (size: number) => void
+      text: (text: string, x: number, y: number) => void
+      addImage?: (imageData: string, format: "PNG" | "JPEG", x: number, y: number, w: number, h: number) => void
+    }
+    type JsPdfCtor = new (options?: Record<string, unknown>) => JsPdfInstance
+    type AutoTable = (
+      doc: JsPdfInstance,
+      options: {
+        head: string[][]
+        body: (string | number)[][]
+        startY?: number
+        styles?: Record<string, unknown>
+        headStyles?: Record<string, unknown>
+        columnStyles?: Record<number, Record<string, unknown>>
+      }
+    ) => void
+
+    try {
+      setExporting("pdf")
+      const tickets = sorted
+
+      const jspdfModule = (await import("jspdf")) as unknown as { jsPDF: JsPdfCtor }
+      const autotableModule = (await import("jspdf-autotable")) as unknown as Record<string, unknown>
+      const autoTable = (autotableModule.autoTable ?? autotableModule.default) as AutoTable | undefined
+      if (!autoTable) throw new Error("PDF export is unavailable")
+
+      const doc = new jspdfModule.jsPDF({ orientation: "landscape" })
+      const svgText = await fetch("/ITXDesk.svg").then((r) => r.text())
+      const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`
+      const pngDataUrl = await new Promise<string>((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement("canvas")
+          const scale = 2
+          canvas.width = Math.max(1, Math.floor(img.width * scale))
+          canvas.height = Math.max(1, Math.floor(img.height * scale))
+          const ctx = canvas.getContext("2d")
+          if (ctx) ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          resolve(canvas.toDataURL("image/png"))
+        }
+        img.onerror = () => resolve("")
+        img.src = svgDataUrl
+      })
+
+      if (doc.addImage && pngDataUrl) {
+        doc.addImage(pngDataUrl, "PNG", 14, 8, 26, 26)
+      }
+
+      doc.setFontSize(14)
+      doc.text("ITX Helpdesk", 14, 40)
+      doc.setFontSize(11)
+      doc.text("Tickets Export", 14, 47)
+      doc.setFontSize(9)
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 53)
+
+      const head = [["ID", "Date", "Title", "Description", "Status", "Priority", "Category", "Requester"]]
+      const body = tickets.map((t) => [
+        t.id,
+        t.created_at ? new Date(t.created_at).toLocaleString() : "—",
+        t.title,
+        descriptionPreview(t.description),
+        t.status,
+        t.priority,
+        t.category,
+        [t.requester_name, t.requester_email].filter(Boolean).join(" / ") || "—",
+      ])
+
+      autoTable(doc, {
+        head,
+        body,
+        startY: 58,
+        styles: { fontSize: 9, cellPadding: 4, valign: "middle" },
+        headStyles: { fillColor: [0, 116, 222] },
+        columnStyles: {
+          0: { cellWidth: 12 },
+          1: { cellWidth: 44 },
+          2: { cellWidth: 55 },
+          3: { cellWidth: 70 },
+          4: { cellWidth: 22 },
+          5: { cellWidth: 22 },
+          6: { cellWidth: 28 },
+          7: { cellWidth: 70 },
+        },
+      })
+
+      doc.save(`itx-helpdesk-tickets-${new Date().toISOString().slice(0, 10)}.pdf`)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border bg-white/80 p-6 backdrop-blur dark:bg-zinc-950/60">
+        <p className="text-sm text-red-600">Failed to load tickets.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-xl border bg-white/80 p-4 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620] md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
+          <Input
+            placeholder="Search tickets..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="md:max-w-[320px] bg-white/70 dark:bg-[#0b0f14] dark:text-zinc-50 dark:border-zinc-800"
+          />
+          <div className="flex gap-2">
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => {
+                if (v === "All" || isTicketStatus(v)) setStatusFilter(v)
+              }}
+            >
+              <SelectTrigger className="w-[160px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Status</SelectItem>
+                {statusOptions.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={priorityFilter}
+              onValueChange={(v) => {
+                if (v === "All" || isTicketPriority(v)) setPriorityFilter(v)
+              }}
+            >
+              <SelectTrigger className="w-[160px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Priority</SelectItem>
+                {priorityOptions.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={sortBy}
+              onValueChange={(v) => {
+                if (v === "created_desc" || v === "created_asc") setSortBy(v)
+              }}
+            >
+              <SelectTrigger className="w-[170px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created_desc">Newest first</SelectItem>
+                <SelectItem value="created_asc">Oldest first</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={!!exporting || isLoading} className="dark:bg-[#0b0f14] dark:border-zinc-800">
+                {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onExport} disabled={!!exporting || isLoading}>
+                CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onExportExcel} disabled={!!exporting || isLoading}>
+                Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onExportPdf} disabled={!!exporting || isLoading}>
+                PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <TicketModalButton open={createOpen} onOpenChange={setCreateOpen} label="New Ticket" labelHeader="Create Ticket">
+            <TicketForm onClose={() => setCreateOpen(false)} />
+          </TicketModalButton>
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620] overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-zinc-50/70 dark:bg-[#0b0f14]">
+            <TableRow>
+              <TableHead className="w-[90px]">ID</TableHead>
+              <TableHead className="w-[190px]">Date</TableHead>
+              <TableHead className="min-w-[200px]">Title</TableHead>
+              <TableHead className="min-w-[240px]">Description</TableHead>
+              <TableHead className="w-[140px]">Status</TableHead>
+              <TableHead className="w-[140px]">Priority</TableHead>
+              <TableHead className="w-[160px]">Category</TableHead>
+              <TableHead className="w-[220px]">Requester</TableHead>
+              <TableHead className="w-[70px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading tickets...
+                  </span>
+                </TableCell>
+              </TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                  No tickets found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              sorted.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-mono text-xs">{t.id}</TableCell>
+                  <TableCell className="text-sm text-zinc-700 dark:text-zinc-300">
+                    {t.created_at ? new Date(t.created_at).toLocaleString() : "—"}
+                  </TableCell>
+                  <TableCell className="font-medium">{t.title}</TableCell>
+                  <TableCell className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <span title={t.description ?? ""}>{descriptionPreview(t.description)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={statusBadgeClass(t.status)}>{t.status}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={priorityBadgeClass(t.priority)}>{t.priority}</Badge>
+                  </TableCell>
+                  <TableCell>{t.category}</TableCell>
+                  <TableCell className="text-sm text-zinc-700 dark:text-zinc-300">
+                    {(t.requester_name || t.requester_email) ? (
+                      <div className="space-y-0.5">
+                        <div className="font-medium">{t.requester_name ?? "—"}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">{t.requester_email ?? ""}</div>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {statusOptions.map((s) => (
+                          <DropdownMenuItem
+                            key={s}
+                            onClick={() => onUpdateStatus(t.id, s)}
+                            disabled={t.status === s}
+                          >
+                            Mark as {s}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}

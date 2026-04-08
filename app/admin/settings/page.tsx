@@ -13,11 +13,13 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string>("")
   const [email, setEmail] = useState<string>("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [avatarUrl, setAvatarUrl] = useState("")
   const [savingProfile, setSavingProfile] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [changingPassword, setChangingPassword] = useState(false)
@@ -30,6 +32,7 @@ export default function SettingsPage() {
         const { data } = await supabase.auth.getUser()
         if (!mounted) return
         const meta = (data.user?.user_metadata ?? {}) as Record<string, unknown>
+        setUserId(data.user?.id ?? "")
         setEmail(data.user?.email ?? "")
         setFirstName(typeof meta.first_name === "string" ? meta.first_name : "")
         setLastName(typeof meta.last_name === "string" ? meta.last_name : "")
@@ -86,6 +89,53 @@ export default function SettingsPage() {
       })
     } finally {
       setSavingProfile(false)
+    }
+  }
+
+  const onUploadAvatar = async (file: File) => {
+    if (!userId) {
+      toast({ title: "Error", description: "Unable to identify your session.", variant: "destructive" })
+      return
+    }
+
+    const isImage = file.type.startsWith("image/")
+    if (!isImage) {
+      toast({ title: "Unsupported file", description: "Please select an image file.", variant: "destructive" })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max size is 5MB.", variant: "destructive" })
+      return
+    }
+
+    const ext = (file.name.split(".").pop() || "png").toLowerCase()
+    const path = `${userId}/${Date.now()}.${ext}`
+
+    try {
+      setUploadingAvatar(true)
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type })
+      if (error) throw error
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path)
+      const publicUrl = data.publicUrl
+      if (!publicUrl) throw new Error("No public URL")
+
+      setAvatarUrl(publicUrl)
+      const { error: updateErr } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
+      if (updateErr) throw updateErr
+
+      toast({ title: "Uploaded", description: "Profile picture updated." })
+      router.refresh()
+    } catch (err) {
+      const message =
+        typeof err === "object" && err && "message" in err
+          ? String((err as { message?: unknown }).message)
+          : "Ensure the avatars bucket exists and allows uploads."
+      toast({ title: "Upload failed", description: message, variant: "destructive" })
+    } finally {
+      setUploadingAvatar(false)
     }
   }
 
@@ -199,6 +249,24 @@ export default function SettingsPage() {
                 placeholder="Last name"
                 className="bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800"
               />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Profile picture</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              disabled={uploadingAvatar || loading}
+              className="bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void onUploadAvatar(file)
+                e.currentTarget.value = ""
+              }}
+            />
+            <div className="text-xs text-zinc-600 dark:text-zinc-400">
+              Choose an image from your gallery to set as your profile picture.
             </div>
           </div>
           <div className="space-y-2">

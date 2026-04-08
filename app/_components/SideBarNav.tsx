@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { LayoutDashboard, Settings, Ticket, PanelLeft, PanelRight } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import Image from "next/image"
 
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ export default function SideBarNav() {
     const pathname = usePathname();
     const [expanded, setExpanded] = useState(true);
     const [user, setUser] = useState<SidebarUser>({});
+    const [unread, setUnread] = useState(0);
 
     useEffect(() => {
       const stored = localStorage.getItem('sidebarExpanded');
@@ -61,6 +63,27 @@ export default function SideBarNav() {
       }
     }, [])
 
+    useEffect(() => {
+      const readUnread = () => {
+        try {
+          const raw = window.localStorage.getItem("itxdesk_notifications")
+          const parsed = raw ? (JSON.parse(raw) as unknown) : []
+          const list = Array.isArray(parsed) ? (parsed as Array<{ read?: boolean }>) : []
+          setUnread(list.filter((n) => !n.read).length)
+        } catch {
+          setUnread(0)
+        }
+      }
+      readUnread()
+      window.addEventListener("itxdesk:notifications", readUnread)
+      window.addEventListener("storage", readUnread)
+      return () => {
+        window.removeEventListener("itxdesk:notifications", readUnread)
+        window.removeEventListener("storage", readUnread)
+      }
+    }, [])
+
+    const hasUnread = useMemo(() => unread > 0, [unread])
     const iconClass = (active: boolean) => cn("h-5 w-5", active ? "text-[#0074de]" : "text-zinc-500 dark:text-zinc-400");
 
     return (
@@ -103,6 +126,14 @@ export default function SideBarNav() {
             </NavLink>
             <NavLink href='/tickets' label="Tickets" isActive={pathname === '/tickets'} isSidebarHovered={expanded}>
               <Ticket className={iconClass(pathname === '/tickets')} />
+            </NavLink>
+            <NavLink href='/notifications' label="Notifications" isActive={pathname === '/notifications'} isSidebarHovered={expanded}>
+              <div className="relative">
+                <Bell className={iconClass(pathname === '/notifications')} />
+                {hasUnread ? (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#0b0f14]" />
+                ) : null}
+              </div>
             </NavLink>
             <NavLink href='/admin/settings' label="Settings" isActive={pathname === '/admin/settings'} isSidebarHovered={expanded}>
               <Settings className={iconClass(pathname === '/admin/settings')} />

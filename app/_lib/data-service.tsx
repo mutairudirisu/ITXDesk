@@ -82,7 +82,7 @@ const escapeCsv = (value: unknown) => {
 
 export const ticketsToCsv = (tickets: Ticket[]) => {
   const headers = [
-    "id",
+    "no",
     "title",
     "status",
     "priority",
@@ -93,9 +93,9 @@ export const ticketsToCsv = (tickets: Ticket[]) => {
     "description",
   ];
 
-  const rows = tickets.map((t) =>
+  const rows = tickets.map((t, idx) =>
     [
-      t.id,
+      idx + 1,
       t.title,
       t.status,
       t.priority,

@@ -137,6 +137,26 @@ export default function TicketsTable() {
     }
   }
 
+  const onCopyDetails = async (ticket: Ticket) => {
+    const lines = [
+      `Title: ${ticket.title}`,
+      `Status: ${ticket.status}`,
+      `Priority: ${ticket.priority}`,
+      `Category: ${ticket.category}`,
+      `Date: ${ticket.created_at ? new Date(ticket.created_at).toLocaleString() : "—"}`,
+      `Requester: ${[ticket.requester_name, ticket.requester_email].filter(Boolean).join(" / ") || "—"}`,
+      "",
+      (ticket.description ?? "").trim(),
+    ].filter(Boolean)
+
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"))
+      toast({ title: "Copied", description: "Ticket details copied to clipboard." })
+    } catch {
+      toast({ title: "Error", description: "Failed to copy ticket details.", variant: "destructive" })
+    }
+  }
+
   const onExport = async () => {
     try {
       setExporting("csv")
@@ -160,8 +180,8 @@ export default function TicketsTable() {
     try {
       setExporting("xlsx")
       const tickets = sorted
-      const rows = tickets.map((t) => ({
-        id: t.id,
+      const rows = tickets.map((t, idx) => ({
+        no: idx + 1,
         date: t.created_at ? new Date(t.created_at) : "",
         title: t.title,
         description: t.description ?? "",
@@ -181,7 +201,7 @@ export default function TicketsTable() {
       ])
       xlsxModule.utils.sheet_add_json(ws, rows, { origin: "A4" })
       ws["!cols"] = [
-        { wch: 8 }, // id
+        { wch: 6 }, // no
         { wch: 22 }, // date
         { wch: 36 }, // title
         { wch: 60 }, // description
@@ -270,9 +290,9 @@ export default function TicketsTable() {
       doc.setFontSize(9)
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 53)
 
-      const head = [["ID", "Date", "Title", "Description", "Status", "Priority", "Category", "Requester"]]
-      const body = tickets.map((t) => [
-        t.id,
+      const head = [["No.", "Date", "Title", "Description", "Status", "Priority", "Category", "Requester"]]
+      const body = tickets.map((t, idx) => [
+        idx + 1,
         t.created_at ? new Date(t.created_at).toLocaleString() : "—",
         t.title,
         (t.description ?? "").trim() || "—",
@@ -474,6 +494,9 @@ export default function TicketsTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => void onCopyDetails(t)}>
+                          Copy details
+                        </DropdownMenuItem>
                         {statusOptions.map((s) => (
                           <DropdownMenuItem
                             key={s}

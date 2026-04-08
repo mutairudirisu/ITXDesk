@@ -1,13 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/app/_lib/supabase"
 import ThemeToggle from "./ThemeToggle"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { LogOut, Settings } from "lucide-react"
+import { Bell, LogOut, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import Image from "next/image"
+import itxDesk from "@/public/ITXDesk.svg"
 
 type UserInfo = {
   email?: string | null
@@ -33,10 +35,13 @@ type TopBarProps = {
 export default function TopBar({ title, subtitle }: TopBarProps) {
   const [user, setUser] = useState<UserInfo>({})
   const pathname = usePathname()
+  const [unread, setUnread] = useState(0)
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null)
 
   const derived = (() => {
     if (pathname === "/dashboard") return { title: "Dashboard", subtitle: "Overview of tickets and activity." }
     if (pathname === "/tickets") return { title: "Tickets", subtitle: "Log requests, track progress, and export data." }
+    if (pathname === "/notifications") return { title: "Notifications", subtitle: "Updates from ticket activity." }
     if (pathname === "/admin/settings") return { title: "Settings", subtitle: "Manage your session and application preferences." }
     if (pathname?.startsWith("/admin")) return { title: "Admin", subtitle: "Manage ITX Helpdesk." }
     return { title: "ITX Helpdesk", subtitle: undefined }
@@ -65,6 +70,50 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
     }
   }, [])
 
+  useEffect(() => {
+    const readUnread = () => {
+      try {
+        const raw = window.localStorage.getItem("itxdesk_notifications")
+        const parsed = raw ? (JSON.parse(raw) as unknown) : []
+        const list = Array.isArray(parsed) ? (parsed as Array<{ read?: boolean }>) : []
+        setUnread(list.filter((n) => !n.read).length)
+      } catch {
+        setUnread(0)
+      }
+    }
+    readUnread()
+    window.addEventListener("itxdesk:notifications", readUnread)
+    window.addEventListener("storage", readUnread)
+    return () => {
+      window.removeEventListener("itxdesk:notifications", readUnread)
+      window.removeEventListener("storage", readUnread)
+    }
+  }, [])
+
+  useEffect(() => {
+    const onBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault?.()
+      setInstallPrompt(e)
+    }
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt)
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt)
+    }
+  }, [])
+
+  const hasUnread = useMemo(() => unread > 0, [unread])
+
+  const onInstall = async () => {
+    const p = installPrompt as unknown as { prompt?: () => Promise<void>; userChoice?: Promise<unknown> } | null
+    if (!p?.prompt) return
+    await p.prompt()
+    try {
+      await p.userChoice
+    } finally {
+      setInstallPrompt(null)
+    }
+  }
+
   const displayName = (() => {
     const n = [user.firstName, user.lastName].filter(Boolean).join(" ").trim()
     if (n) return n
@@ -89,6 +138,29 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
           ) : null}
         </div>
         <div className="flex items-center gap-3 shrink-0">
+        <Link
+          href="/notifications"
+          className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white/70 backdrop-blur hover:bg-white dark:border-zinc-800 dark:bg-[#0f1620] dark:hover:bg-[#111b26]"
+          aria-label="Notifications"
+        >
+          <Bell className="h-5 w-5 text-zinc-700 dark:text-zinc-200" />
+          {hasUnread ? (
+            <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#0b0f14]" />
+          ) : null}
+        </Link>
+        {installPrompt ? (
+          <button
+            type="button"
+            onClick={() => void onInstall()}
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white/70 backdrop-blur hover:bg-white dark:border-zinc-800 dark:bg-[#0f1620] dark:hover:bg-[#111b26]"
+            aria-label="Install app"
+          >
+            <Image src={itxDesk} alt="Install" width={18} height={18} />
+            {hasUnread ? (
+              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#0b0f14]" />
+            ) : null}
+          </button>
+        ) : null}
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/70 px-2 py-1.5 backdrop-blur hover:bg-white dark:border-zinc-800 dark:bg-[#0f1620] dark:hover:bg-[#111b26]">

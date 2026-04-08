@@ -102,8 +102,33 @@ type TicketRealtimeListenerProps = {
 
 function TicketRealtimeListener({ toast }: TicketRealtimeListenerProps) {
   useEffect(() => {
+    const pushToStore = (title: string, description: string) => {
+      if (typeof window === "undefined") return
+      try {
+        const key = "itxdesk_notifications"
+        const raw = window.localStorage.getItem(key)
+        const parsed = raw ? (JSON.parse(raw) as unknown) : []
+        const list = Array.isArray(parsed) ? parsed : []
+        const next = [
+          {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            title,
+            description,
+            createdAt: new Date().toISOString(),
+            read: false,
+          },
+          ...list,
+        ].slice(0, 200)
+        window.localStorage.setItem(key, JSON.stringify(next))
+        window.dispatchEvent(new Event("itxdesk:notifications"))
+      } catch {
+        return
+      }
+    }
+
     const notify = (title: string, description: string) => {
       toast({ title, description, variant: "default" })
+      pushToStore(title, description)
       if (typeof window === "undefined") return
       if (!("Notification" in window)) return
       if (Notification.permission !== "granted") return

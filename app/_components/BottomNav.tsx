@@ -40,9 +40,9 @@ export default function BottomNav() {
   const hasUnread = useMemo(() => unread > 0, [unread])
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      <div className="border-t border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/70">
-        <nav className="mx-auto grid max-w-md grid-cols-4 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+    <div className="fixed inset-x-0 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 px-4 md:hidden">
+      <div className="mx-auto max-w-md rounded-2xl border border-zinc-200 bg-white/80 shadow-lg backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/70">
+        <nav className="grid grid-cols-4 gap-1 p-2">
           {items.map(({ href, label, Icon }) => {
             const active = pathname === href
             const isNotifications = href === "/notifications"

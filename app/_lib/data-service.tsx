@@ -33,7 +33,7 @@ export const getTickets = async () => {
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error("tickets could not be loaded");
+    throw new Error(error.message);
   }
 
   return data as Ticket[];
@@ -67,7 +67,7 @@ export const updateTicketStatus = async (id: number, newStatus: TicketStatus) =>
     .single();
 
   if (error) {
-    throw new Error("ticket status could not be updated");
+    throw new Error(error.message);
   }
 
   return data as Ticket;

@@ -56,17 +56,22 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620]">
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="mx-auto max-w-3xl bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620]">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-[#0074de]" />
             Notifications
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={markAllRead} disabled={items.length === 0 || unread === 0} className="dark:bg-[#0b0f14] dark:border-zinc-800">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <Button
+              variant="outline"
+              onClick={markAllRead}
+              disabled={items.length === 0 || unread === 0}
+              className="w-full sm:w-auto dark:bg-[#0b0f14] dark:border-zinc-800"
+            >
               Mark all read
             </Button>
-            <Button variant="destructive" onClick={clearAll} disabled={items.length === 0}>
+            <Button variant="destructive" onClick={clearAll} disabled={items.length === 0} className="w-full sm:w-auto">
               <Trash2 className="mr-2 h-4 w-4" />
               Clear
             </Button>
@@ -79,7 +84,7 @@ export default function NotificationsPage() {
             items.map((n) => (
               <div
                 key={n.id}
-                className="flex items-start justify-between gap-4 rounded-xl border border-zinc-200 bg-white/70 p-4 dark:border-zinc-800 dark:bg-[#0b0f14]"
+                className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white/70 p-4 dark:border-zinc-800 dark:bg-[#0b0f14] sm:flex-row sm:items-start sm:justify-between"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -99,4 +104,3 @@ export default function NotificationsPage() {
     </div>
   )
 }
-

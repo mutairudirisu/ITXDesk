@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR from "swr"
-import { BarChart3, CircleDashed, CircleDot, CheckCircle2 } from "lucide-react"
+import { ArrowUpRight, BarChart3, CircleDashed, CircleDot, CheckCircle2 } from "lucide-react"
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +14,77 @@ const statusVariant = (status: Ticket["status"]) => {
   if (status === "In Progress") return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200"
   if (status === "Resolved") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
   return "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+}
+
+const pct = (value: number, total: number) => {
+  if (!total) return 0
+  return Math.max(0, Math.min(100, Math.round((value / total) * 100)))
+}
+
+type StatCardProps = {
+  title: string
+  value: number
+  total: number
+  Icon: React.ComponentType<{ className?: string }>
+  tone: "dark" | "light"
+  accent: "blue" | "amber" | "emerald" | "zinc"
+}
+
+const accentBar = (accent: StatCardProps["accent"]) => {
+  if (accent === "blue") return "bg-[#0074de]"
+  if (accent === "amber") return "bg-amber-500"
+  if (accent === "emerald") return "bg-emerald-500"
+  return "bg-zinc-500"
+}
+
+function StatCard({ title, value, total, Icon, tone, accent }: StatCardProps) {
+  const percent = pct(value, total)
+  return (
+    <div
+      className={
+        tone === "dark"
+          ? "rounded-2xl bg-zinc-950 text-white shadow-sm ring-1 ring-zinc-900/10 dark:ring-zinc-800"
+          : "rounded-2xl bg-white/80 text-zinc-900 shadow-sm ring-1 ring-zinc-200 backdrop-blur dark:bg-zinc-950/50 dark:text-zinc-50 dark:ring-zinc-800"
+      }
+    >
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className={tone === "dark" ? "text-2xl font-semibold leading-none" : "text-2xl font-semibold leading-none"}>
+              {Number.isFinite(value) ? value : 0}
+            </div>
+            <div className={tone === "dark" ? "mt-1 text-xs text-white/75" : "mt-1 text-xs text-zinc-600 dark:text-zinc-400"}>
+              {title}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className={
+                tone === "dark"
+                  ? "h-9 w-9 rounded-xl bg-white/10 text-white flex items-center justify-center"
+                  : "h-9 w-9 rounded-xl bg-zinc-100 text-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200 flex items-center justify-center"
+              }
+            >
+              <Icon className="h-5 w-5" />
+            </div>
+            <div className={tone === "dark" ? "text-white/60" : "text-zinc-400 dark:text-zinc-500"}>
+              <ArrowUpRight className="h-4 w-4" />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className={tone === "dark" ? "flex justify-between text-[10px] text-white/60" : "flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400"}>
+            <span>0%</span>
+            <span>{percent}%</span>
+          </div>
+          <div className={tone === "dark" ? "mt-1 h-2 w-full rounded-full bg-white/10" : "mt-1 h-2 w-full rounded-full bg-zinc-200/80 dark:bg-zinc-800"}>
+            <div className={`h-2 rounded-full ${accentBar(accent)}`} style={{ width: `${percent}%` }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function DashboardPage() {
@@ -47,59 +118,36 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-sky-50 to-white dark:from-zinc-900 dark:to-zinc-950">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Total Tickets</CardTitle>
-              <div className="h-9 w-9 rounded-lg bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-200 flex items-center justify-center">
-                <BarChart3 className="h-5 w-5" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{isLoading ? "—" : total}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-50 to-white dark:from-zinc-900 dark:to-zinc-950">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Open</CardTitle>
-              <div className="h-9 w-9 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200 flex items-center justify-center">
-                <CircleDashed className="h-5 w-5" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{isLoading ? "—" : open}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-50 to-white dark:from-zinc-900 dark:to-zinc-950">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>In Progress</CardTitle>
-              <div className="h-9 w-9 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200 flex items-center justify-center">
-                <CircleDot className="h-5 w-5" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{isLoading ? "—" : inProgress}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-emerald-50 to-white dark:from-zinc-900 dark:to-zinc-950">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Resolved</CardTitle>
-              <div className="h-9 w-9 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">{isLoading ? "—" : resolved}</div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Ticket Overview</div>
+        <div className="text-xs text-zinc-600 dark:text-zinc-400">{isLoading ? "Loading…" : `${total} total`}</div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <StatCard
+          title="Total Tickets"
+          value={isLoading ? 0 : total}
+          total={Math.max(total, 1)}
+          Icon={BarChart3}
+          tone="dark"
+          accent="blue"
+        />
+        <StatCard title="Open" value={isLoading ? 0 : open} total={Math.max(total, 1)} Icon={CircleDashed} tone="light" accent="blue" />
+        <StatCard
+          title="In Progress"
+          value={isLoading ? 0 : inProgress}
+          total={Math.max(total, 1)}
+          Icon={CircleDot}
+          tone="light"
+          accent="amber"
+        />
+        <StatCard
+          title="Resolved"
+          value={isLoading ? 0 : resolved}
+          total={Math.max(total, 1)}
+          Icon={CheckCircle2}
+          tone="light"
+          accent="emerald"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

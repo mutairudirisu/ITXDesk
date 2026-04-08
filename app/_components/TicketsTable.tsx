@@ -328,9 +328,11 @@ export default function TicketsTable() {
   }
 
   if (error) {
+    const message = error instanceof Error ? error.message : "Unknown error"
     return (
       <div className="rounded-xl border bg-white/80 p-6 backdrop-blur dark:bg-zinc-950/60">
         <p className="text-sm text-red-600">Failed to load tickets.</p>
+        <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">{message}</p>
       </div>
     )
   }

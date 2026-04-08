@@ -2,16 +2,9 @@
 
 import useSWR from "swr"
 import { BarChart3, CircleDashed, CircleDot, CheckCircle2 } from "lucide-react"
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
 import { getTickets, type Ticket } from "@/app/_lib/data-service"
@@ -32,7 +25,25 @@ export default function DashboardPage() {
   const inProgress = tickets.filter((t) => t.status === "In Progress").length
   const resolved = tickets.filter((t) => t.status === "Resolved").length
 
-  const recent = tickets.slice(0, 5)
+  const statusData = [
+    { name: "Open", value: open },
+    { name: "In Progress", value: inProgress },
+    { name: "Resolved", value: resolved },
+    { name: "Closed", value: tickets.filter((t) => t.status === "Closed").length },
+  ].filter((d) => d.value > 0)
+
+  const priorityData = [
+    { name: "Low", value: tickets.filter((t) => t.priority === "Low").length },
+    { name: "Medium", value: tickets.filter((t) => t.priority === "Medium").length },
+    { name: "High", value: tickets.filter((t) => t.priority === "High").length },
+    { name: "Urgent", value: tickets.filter((t) => t.priority === "Urgent").length },
+  ].filter((d) => d.value > 0)
+
+  const recentActivity = [...tickets]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 6)
+
+  const pieColors = ["#0074de", "#f59e0b", "#10b981", "#71717a"]
 
   return (
     <div className="space-y-4">
@@ -91,55 +102,97 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="rounded-xl border bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620] overflow-x-auto">
-        <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-4 py-3">
-          <h2 className="text-sm font-semibold">Recent Tickets</h2>
-        </div>
-        <Table>
-          <TableHeader className="bg-zinc-50/70 dark:bg-[#0b0f14]">
-            <TableRow>
-              <TableHead className="w-[90px]">ID</TableHead>
-              <TableHead className="w-[190px]">Date</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead className="w-[140px]">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620] lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Ticket Status</CardTitle>
+            <div className="text-xs text-zinc-600 dark:text-zinc-400">Distribution</div>
+          </CardHeader>
+          <CardContent className="h-[280px]">
             {error ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-sm text-red-600">
-                  Failed to load tickets.
-                </TableCell>
-              </TableRow>
+              <div className="h-full flex items-center justify-center text-sm text-red-600">Failed to load tickets.</div>
             ) : isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : recent.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
-                  No tickets yet.
-                </TableCell>
-              </TableRow>
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Loading...</div>
+            ) : statusData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">No tickets yet.</div>
             ) : (
-              recent.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-mono text-xs">{t.id}</TableCell>
-                  <TableCell className="text-sm text-zinc-700 dark:text-zinc-300">
-                    {t.created_at ? new Date(t.created_at).toLocaleString() : "—"}
-                  </TableCell>
-                  <TableCell className="font-medium">{t.title}</TableCell>
-                  <TableCell>
-                    <Badge className={statusVariant(t.status)}>{t.status}</Badge>
-                  </TableCell>
-                </TableRow>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={28} />
+                  <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={62} outerRadius={100} paddingAngle={2}>
+                    {statusData.map((_, idx) => (
+                      <Cell key={idx} fill={pieColors[idx % pieColors.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620]">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Recent Activity</CardTitle>
+            <div className="text-xs text-zinc-600 dark:text-zinc-400">Latest</div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {error ? (
+              <div className="py-6 text-center text-sm text-red-600">Failed to load tickets.</div>
+            ) : isLoading ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">Loading...</div>
+            ) : recentActivity.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">No activity yet.</div>
+            ) : (
+              recentActivity.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-white/70 p-3 dark:border-zinc-800 dark:bg-[#0b0f14]"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="font-mono text-xs text-zinc-600 dark:text-zinc-400">#{t.id}</div>
+                      <Badge className={statusVariant(t.status)}>{t.status}</Badge>
+                    </div>
+                    <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{t.title}</div>
+                    <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                      {t.created_at ? new Date(t.created_at).toLocaleString() : "—"}
+                    </div>
+                  </div>
+                </div>
               ))
             )}
-          </TableBody>
-        </Table>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card className="bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620]">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Priority Breakdown</CardTitle>
+          <div className="text-xs text-zinc-600 dark:text-zinc-400">Distribution</div>
+        </CardHeader>
+        <CardContent className="h-[260px]">
+          {error ? (
+            <div className="h-full flex items-center justify-center text-sm text-red-600">Failed to load tickets.</div>
+          ) : isLoading ? (
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Loading...</div>
+          ) : priorityData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">No tickets yet.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Tooltip />
+                <Legend verticalAlign="bottom" height={28} />
+                <Pie data={priorityData} dataKey="value" nameKey="name" innerRadius={58} outerRadius={96} paddingAngle={2}>
+                  {priorityData.map((_, idx) => (
+                    <Cell key={idx} fill={["#71717a", "#fbbf24", "#fb923c", "#ef4444"][idx % 4]} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

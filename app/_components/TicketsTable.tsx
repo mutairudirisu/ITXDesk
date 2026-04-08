@@ -81,7 +81,7 @@ export default function TicketsTable() {
   const [query, setQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "All">("All")
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "All">("All")
-  const [sortBy, setSortBy] = useState<SortOption>("created_desc")
+  const [sortBy, setSortBy] = useState<SortOption>("created_asc")
   const [createOpen, setCreateOpen] = useState(false)
   const [exporting, setExporting] = useState<ExportFormat | null>(null)
 
@@ -175,7 +175,7 @@ export default function TicketsTable() {
       const xlsxModule = await import("xlsx")
       const wb = xlsxModule.utils.book_new()
       const ws = xlsxModule.utils.aoa_to_sheet([
-        ["ITXDesk.svg"],
+        ["ITX Helpdesk"],
         ["ITX Helpdesk - Tickets Export"],
         ["Generated", new Date().toLocaleString()],
       ])
@@ -183,8 +183,8 @@ export default function TicketsTable() {
       ws["!cols"] = [
         { wch: 8 }, // id
         { wch: 22 }, // date
-        { wch: 32 }, // title
-        { wch: 44 }, // description
+        { wch: 36 }, // title
+        { wch: 60 }, // description
         { wch: 14 }, // status
         { wch: 14 }, // priority
         { wch: 16 }, // category
@@ -225,6 +225,7 @@ export default function TicketsTable() {
         head: string[][]
         body: (string | number)[][]
         startY?: number
+        margin?: { left: number; right: number }
         styles?: Record<string, unknown>
         headStyles?: Record<string, unknown>
         columnStyles?: Record<number, Record<string, unknown>>
@@ -274,7 +275,7 @@ export default function TicketsTable() {
         t.id,
         t.created_at ? new Date(t.created_at).toLocaleString() : "—",
         t.title,
-        descriptionPreview(t.description),
+        (t.description ?? "").trim() || "—",
         t.status,
         t.priority,
         t.category,
@@ -285,17 +286,18 @@ export default function TicketsTable() {
         head,
         body,
         startY: 58,
-        styles: { fontSize: 9, cellPadding: 4, valign: "middle" },
+        margin: { left: 14, right: 14 },
+        styles: { fontSize: 8, cellPadding: 2, valign: "middle", overflow: "linebreak", cellWidth: "wrap" },
         headStyles: { fillColor: [0, 116, 222] },
         columnStyles: {
-          0: { cellWidth: 12 },
-          1: { cellWidth: 44 },
-          2: { cellWidth: 55 },
+          0: { cellWidth: 10 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 40 },
           3: { cellWidth: 70 },
-          4: { cellWidth: 22 },
-          5: { cellWidth: 22 },
-          6: { cellWidth: 28 },
-          7: { cellWidth: 70 },
+          4: { cellWidth: 18 },
+          5: { cellWidth: 18 },
+          6: { cellWidth: 22 },
+          7: { cellWidth: 55 },
         },
       })
 
@@ -316,21 +318,21 @@ export default function TicketsTable() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-xl border bg-white/80 p-4 backdrop-blur dark:border-zinc-800 dark:bg-[#0f1620] md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
+        <div className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
           <Input
             placeholder="Search tickets..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="md:max-w-[320px] bg-white/70 dark:bg-[#0b0f14] dark:text-zinc-50 dark:border-zinc-800"
+            className="w-full lg:max-w-[320px] bg-white/70 dark:bg-[#0b0f14] dark:text-zinc-50 dark:border-zinc-800"
           />
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <Select
               value={statusFilter}
               onValueChange={(v) => {
                 if (v === "All" || isTicketStatus(v)) setStatusFilter(v)
               }}
             >
-              <SelectTrigger className="w-[160px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+              <SelectTrigger className="w-full sm:w-[160px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -349,7 +351,7 @@ export default function TicketsTable() {
                 if (v === "All" || isTicketPriority(v)) setPriorityFilter(v)
               }}
             >
-              <SelectTrigger className="w-[160px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+              <SelectTrigger className="w-full sm:w-[160px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -368,18 +370,18 @@ export default function TicketsTable() {
                 if (v === "created_desc" || v === "created_asc") setSortBy(v)
               }}
             >
-              <SelectTrigger className="w-[170px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+              <SelectTrigger className="w-full sm:w-[170px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="created_desc">Newest first</SelectItem>
-                <SelectItem value="created_asc">Oldest first</SelectItem>
+                <SelectItem value="created_asc">Oldest first (Ascending)</SelectItem>
+                <SelectItem value="created_desc">Newest first (Descending)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={!!exporting || isLoading} className="dark:bg-[#0b0f14] dark:border-zinc-800">

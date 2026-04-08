@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Montserrat } from "next/font/google";
@@ -20,10 +20,15 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "ITX Helpdesk",
   description: "Ticket logging and helpdesk requests",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/ITXDesk.svg",
   },
 };
+
+export const viewport: Viewport = {
+  themeColor: "#0074de",
+}
 
 export default function RootLayout({
   children,

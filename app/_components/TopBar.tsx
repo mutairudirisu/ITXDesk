@@ -12,6 +12,9 @@ import { usePathname } from "next/navigation"
 type UserInfo = {
   email?: string | null
   avatarUrl?: string | null
+  firstName?: string | null
+  lastName?: string | null
+  fullName?: string | null
 }
 
 const initials = (text?: string | null) => {
@@ -45,9 +48,15 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
       const { data } = await supabase.auth.getUser()
       if (!mounted) return
       const meta = (data.user?.user_metadata ?? {}) as Record<string, unknown>
+      const firstName = typeof meta.first_name === "string" ? meta.first_name : null
+      const lastName = typeof meta.last_name === "string" ? meta.last_name : null
+      const fullName = typeof meta.full_name === "string" ? meta.full_name : null
       setUser({
         email: data.user?.email,
         avatarUrl: typeof meta.avatar_url === "string" ? meta.avatar_url : null,
+        firstName,
+        lastName,
+        fullName,
       })
     }
     load()
@@ -56,32 +65,42 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
     }
   }, [])
 
+  const displayName = (() => {
+    const n = [user.firstName, user.lastName].filter(Boolean).join(" ").trim()
+    if (n) return n
+    if (user.fullName?.trim()) return user.fullName.trim()
+    const e = user.email?.trim() ?? ""
+    if (!e) return "Signed in"
+    return e.split("@")[0] || e
+  })()
+
   const onSignOut = async () => {
     await supabase.auth.signOut()
     window.location.href = "/login"
   }
 
   return (
-    <header className="sticky top-0 z-40 py-4 md:py-6 flex flex-col md:flex-row gap-2 md:gap-0 md:justify-between md:items-center bg-white/70 dark:bg-[#0b0f14]/90 px-4 md:px-10 border-b border-zinc-200 dark:border-zinc-800 backdrop-blur">
-      <div className="space-y-0.5">
-        <h1 className="text-base md:text-lg font-semibold">{title ?? derived.title}</h1>
-        {(subtitle ?? derived.subtitle) ? (
-          <p className="text-xs md:text-sm text-zinc-600 dark:text-zinc-400">{subtitle ?? derived.subtitle}</p>
-        ) : null}
-      </div>
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 bg-white/70 dark:bg-[#0b0f14]/90 px-4 md:px-10 border-b border-zinc-200 dark:border-zinc-800 backdrop-blur">
+      <div className="py-4 md:py-6 flex items-start sm:items-center justify-between gap-3">
+        <div className="min-w-0 space-y-0.5">
+          <h1 className="text-base md:text-lg font-semibold truncate">{title ?? derived.title}</h1>
+          {(subtitle ?? derived.subtitle) ? (
+            <p className="text-xs md:text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">{subtitle ?? derived.subtitle}</p>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white/70 px-2 py-1.5 backdrop-blur hover:bg-white dark:border-zinc-800 dark:bg-[#0f1620] dark:hover:bg-[#111b26]">
             <Avatar className="h-8 w-8 ring-2 ring-zinc-200 dark:ring-zinc-800">
               {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="Profile" /> : null}
               <AvatarFallback className="bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
-                {initials(user.email)}
+                {initials(displayName)}
               </AvatarFallback>
             </Avatar>
-            <div className="hidden md:flex flex-col items-start leading-none">
-              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200">Account</div>
-              <div className="text-xs text-zinc-600 dark:text-zinc-400">{user.email ?? "Signed in"}</div>
+            <div className="flex flex-col items-start leading-none">
+              <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{displayName}</div>
+              <div className="hidden sm:block text-xs text-zinc-600 dark:text-zinc-400">{user.email ?? ""}</div>
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -97,6 +116,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
       </div>
     </header>
   )

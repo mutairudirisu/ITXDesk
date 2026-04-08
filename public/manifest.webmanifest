@@ -1,0 +1,17 @@
+{
+  "name": "ITX Helpdesk",
+  "short_name": "ITXDesk",
+  "description": "Ticket logging and helpdesk requests",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0074de",
+  "icons": [
+    {
+      "src": "/ITXDesk.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

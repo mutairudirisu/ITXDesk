@@ -35,6 +35,7 @@ const formSchema = z.object({
   title: z.string().min(3, "Title is too short"),
   category: z.enum(["Hardware", "Software", "Network", "Access", "Other"]),
   priority: z.enum(["Low", "Medium", "High", "Urgent"]),
+  floor: z.string().optional(),
   requester_name: z.string().optional(),
   requester_email: z.string().email("Invalid email address").optional().or(z.literal("")),
   description: z.string().optional(),
@@ -121,7 +122,7 @@ const buildSuggestedSteps = (title: string, category: TicketCategory) => {
   return common
 }
 
-const generateAssistedDescription = (input: { title: string; category: TicketCategory }) => {
+const generateAssistedDescription = (input: { title: string; category: TicketCategory; floor?: string }) => {
   const intro =
     input.category === "Access"
       ? "Access request submitted via ITX Helpdesk."
@@ -145,6 +146,7 @@ const generateAssistedDescription = (input: { title: string; category: TicketCat
     "",
     `Title: ${input.title}`,
     `Category: ${input.category}`,
+    ...(input.floor?.trim() ? [`Location/Floor: ${input.floor.trim()}`] : []),
     "",
     "What I already tried (suggested):",
     ...steps.map((s) => `- ${s}`),
@@ -176,6 +178,7 @@ export default function TicketForm({ onClose }: TicketFormProps) {
       title: "",
       category: "Software",
       priority: "Medium",
+      floor: "",
       requester_name: "",
       requester_email: "",
       description: "",
@@ -198,7 +201,10 @@ export default function TicketForm({ onClose }: TicketFormProps) {
         priority: values.priority,
         requester_name: values.requester_name?.trim() || undefined,
         requester_email: values.requester_email?.trim() || undefined,
-        description: values.description?.trim() || undefined,
+        description:
+          [values.floor?.trim() ? `Location/Floor: ${values.floor.trim()}` : "", values.description?.trim() || ""]
+            .filter(Boolean)
+            .join("\n\n") || undefined,
       }
 
       await insertTicket(payload)
@@ -231,6 +237,7 @@ export default function TicketForm({ onClose }: TicketFormProps) {
       const next = generateAssistedDescription({
         title: form.getValues().title,
         category: form.getValues().category,
+        floor: form.getValues().floor,
       })
 
       const current = (form.getValues().description ?? "").trim()
@@ -347,6 +354,20 @@ export default function TicketForm({ onClose }: TicketFormProps) {
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="floor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Floor / Location</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. 2nd Floor, Reception" {...field} className="bg-white/70 dark:bg-zinc-950/40" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}

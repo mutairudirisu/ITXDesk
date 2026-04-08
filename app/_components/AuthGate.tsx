@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { supabase } from "@/app/_lib/supabase"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 
 type AuthGateProps = {
   children: ReactNode
@@ -12,6 +13,7 @@ type AuthGateProps = {
 export default function AuthGate({ children }: AuthGateProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const { toast } = useToast()
   const [status, setStatus] = useState<"checking" | "authed" | "unauth" | "error">("checking")
   const [showLoader, setShowLoader] = useState(false)
 
@@ -60,7 +62,7 @@ export default function AuthGate({ children }: AuthGateProps) {
     }
   }, [pathname, router])
 
-  if (status === "authed") return <>{children}</>
+  if (status === "authed") return <>{children}<TicketRealtimeListener toast={toast} /></>
 
   if (status === "checking") {
     if (!showLoader) return <div className="h-[60vh]" />
@@ -92,4 +94,56 @@ export default function AuthGate({ children }: AuthGateProps) {
       </div>
     </div>
   )
+}
+
+type TicketRealtimeListenerProps = {
+  toast: (args: { title?: string; description?: string; variant?: "default" | "destructive" }) => void
+}
+
+function TicketRealtimeListener({ toast }: TicketRealtimeListenerProps) {
+  useEffect(() => {
+    const notify = (title: string, description: string) => {
+      toast({ title, description, variant: "default" })
+      if (typeof window === "undefined") return
+      if (!("Notification" in window)) return
+      if (Notification.permission !== "granted") return
+      try {
+        new Notification(title, { body: description })
+      } catch {
+        return
+      }
+    }
+
+    const channel = supabase
+      .channel("itxdesk-tickets")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "tickets" },
+        (payload) => {
+          const row = (payload as unknown as { new?: Record<string, unknown> }).new ?? {}
+          const title = typeof row.title === "string" ? row.title : "New ticket"
+          const id = typeof row.id === "number" ? row.id : null
+          notify("New ticket logged", id ? `#${id} • ${title}` : title)
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "tickets" },
+        (payload) => {
+          const p = payload as unknown as { new?: Record<string, unknown>; old?: Record<string, unknown> }
+          const nextStatus = typeof p.new?.status === "string" ? p.new?.status : ""
+          const prevStatus = typeof p.old?.status === "string" ? p.old?.status : ""
+          if (!nextStatus || nextStatus === prevStatus) return
+          const id = typeof p.new?.id === "number" ? p.new?.id : null
+          notify("Ticket updated", id ? `#${id} marked as ${nextStatus}` : `Marked as ${nextStatus}`)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [toast])
+
+  return null
 }

@@ -17,7 +17,7 @@ export default function BottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
       <div className="border-t border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/70">
-        <nav className="mx-auto grid max-w-md grid-cols-3 px-2 py-2">
+        <nav className="mx-auto grid max-w-md grid-cols-3 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
           {items.map(({ href, label, Icon }) => {
             const active = pathname === href
             return (

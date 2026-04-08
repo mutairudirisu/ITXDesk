@@ -111,7 +111,7 @@ export default function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-[400px]">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
         <FormField
           control={form.control}
           name="email"
@@ -178,7 +178,7 @@ export default function LoginForm() {
                 />
                 <label
                   htmlFor="rememberMe"
-                  className="text-sm text-gray-600 cursor-pointer"
+                  className="text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer"
                 >
                   Remember me
                 </label>
@@ -200,7 +200,7 @@ export default function LoginForm() {
                 <DialogTitle>Reset Password</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   Enter your email address and we will send you a link to reset your password.
                 </p>
                 <Input

@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/app/_lib/supabase"
 import { useRouter } from "next/navigation"
-import TopBar from "../../_components/TopBar"
 
 export default function SettingsPage() {
   const { toast } = useToast()
@@ -26,22 +25,16 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#eef3ff] via-white to-white dark:bg-[#0b0f14] dark:bg-none">
-      <TopBar title="Settings" subtitle="Manage your session and application preferences." />
-
-      <div className="p-2 md:p-4">
-        <Card className="max-w-xl bg-white/80 backdrop-blur dark:bg-zinc-950/60">
-          <CardHeader>
-            <CardTitle>Session</CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-4">
-            <div className="text-sm text-zinc-600">Sign out of ITX Helpdesk on this device.</div>
-            <Button variant="destructive" onClick={onSignOut}>
-              Sign Out
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <Card className="max-w-xl bg-white/80 backdrop-blur dark:bg-zinc-950/60">
+      <CardHeader>
+        <CardTitle>Session</CardTitle>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between gap-4">
+        <div className="text-sm text-zinc-600">Sign out of ITX Helpdesk on this device.</div>
+        <Button variant="destructive" onClick={onSignOut}>
+          Sign Out
+        </Button>
+      </CardContent>
+    </Card>
   )
 }

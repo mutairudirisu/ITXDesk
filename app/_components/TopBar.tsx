@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { LogOut, Settings } from "lucide-react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 type UserInfo = {
   email?: string | null
@@ -22,12 +23,21 @@ const initials = (text?: string | null) => {
 }
 
 type TopBarProps = {
-  title: string
+  title?: string
   subtitle?: string
 }
 
 export default function TopBar({ title, subtitle }: TopBarProps) {
   const [user, setUser] = useState<UserInfo>({})
+  const pathname = usePathname()
+
+  const derived = (() => {
+    if (pathname === "/dashboard") return { title: "Dashboard", subtitle: "Overview of tickets and activity." }
+    if (pathname === "/tickets") return { title: "Tickets", subtitle: "Log requests, track progress, and export data." }
+    if (pathname === "/admin/settings") return { title: "Settings", subtitle: "Manage your session and application preferences." }
+    if (pathname?.startsWith("/admin")) return { title: "Admin", subtitle: "Manage ITX Helpdesk." }
+    return { title: "ITX Helpdesk", subtitle: undefined }
+  })()
 
   useEffect(() => {
     let mounted = true
@@ -52,10 +62,12 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
   }
 
   return (
-    <header className="z-40 py-4 md:py-6 flex flex-col md:flex-row gap-2 md:gap-0 md:justify-between md:items-center bg-white/70 dark:bg-[#0b0f14]/90 px-4 md:px-10 border-b border-zinc-200 dark:border-zinc-800 backdrop-blur">
+    <header className="sticky top-0 z-40 py-4 md:py-6 flex flex-col md:flex-row gap-2 md:gap-0 md:justify-between md:items-center bg-white/70 dark:bg-[#0b0f14]/90 px-4 md:px-10 border-b border-zinc-200 dark:border-zinc-800 backdrop-blur">
       <div className="space-y-0.5">
-        <h1 className="text-base md:text-lg font-semibold">{title}</h1>
-        {subtitle && <p className="text-xs md:text-sm text-zinc-600 dark:text-zinc-400">{subtitle}</p>}
+        <h1 className="text-base md:text-lg font-semibold">{title ?? derived.title}</h1>
+        {(subtitle ?? derived.subtitle) ? (
+          <p className="text-xs md:text-sm text-zinc-600 dark:text-zinc-400">{subtitle ?? derived.subtitle}</p>
+        ) : null}
       </div>
       <div className="flex items-center gap-3">
         <ThemeToggle />

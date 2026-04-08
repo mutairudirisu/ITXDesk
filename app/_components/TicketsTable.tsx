@@ -81,7 +81,7 @@ export default function TicketsTable() {
   const [query, setQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "All">("All")
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "All">("All")
-  const [sortBy, setSortBy] = useState<SortOption>("created_asc")
+  const [sortBy, setSortBy] = useState<SortOption>("created_desc")
   const [createOpen, setCreateOpen] = useState(false)
   const [exporting, setExporting] = useState<ExportFormat | null>(null)
 
@@ -374,8 +374,8 @@ export default function TicketsTable() {
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="created_asc">Oldest first (Ascending)</SelectItem>
-                <SelectItem value="created_desc">Newest first (Descending)</SelectItem>
+                <SelectItem value="created_desc">Newest first</SelectItem>
+                <SelectItem value="created_asc">Oldest first</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -411,7 +411,7 @@ export default function TicketsTable() {
         <Table>
           <TableHeader className="bg-zinc-50/70 dark:bg-[#0b0f14]">
             <TableRow>
-              <TableHead className="w-[90px]">ID</TableHead>
+              <TableHead className="w-[70px]">No.</TableHead>
               <TableHead className="w-[190px]">Date</TableHead>
               <TableHead className="min-w-[200px]">Title</TableHead>
               <TableHead className="min-w-[240px]">Description</TableHead>
@@ -439,9 +439,9 @@ export default function TicketsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              sorted.map((t) => (
+              sorted.map((t, idx) => (
                 <TableRow key={t.id}>
-                  <TableCell className="font-mono text-xs">{t.id}</TableCell>
+                  <TableCell className="font-mono text-xs text-zinc-600 dark:text-zinc-400">{idx + 1}</TableCell>
                   <TableCell className="text-sm text-zinc-700 dark:text-zinc-300">
                     {t.created_at ? new Date(t.created_at).toLocaleString() : "—"}
                   </TableCell>

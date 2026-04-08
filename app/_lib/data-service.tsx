@@ -30,7 +30,7 @@ export const getTickets = async () => {
   const { data, error } = await supabase
     .from("tickets")
     .select("*")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error("tickets could not be loaded");

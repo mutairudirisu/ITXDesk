@@ -98,9 +98,9 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
                 {initials(displayName)}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col items-start leading-none">
+            <div className="hidden md:flex flex-col items-start leading-none">
               <div className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{displayName}</div>
-              <div className="hidden sm:block text-xs text-zinc-600 dark:text-zinc-400">{user.email ?? ""}</div>
+              <div className="text-xs text-zinc-600 dark:text-zinc-400">{user.email ?? ""}</div>
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

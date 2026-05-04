@@ -41,6 +41,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
   const derived = (() => {
     if (pathname === "/dashboard") return { title: "Dashboard", subtitle: "Overview of tickets and activity." }
     if (pathname === "/tickets") return { title: "Tickets", subtitle: "Log requests, track progress, and export data." }
+    if (pathname === "/reports") return { title: "Reports", subtitle: "Generate and view performance reports." }
     if (pathname === "/notifications") return { title: "Notifications", subtitle: "Updates from ticket activity." }
     if (pathname === "/admin/settings") return { title: "Profile Settings", subtitle: "Manage your profile, security, and application preferences." }
     if (pathname?.startsWith("/admin")) return { title: "Admin", subtitle: "Manage ITX Helpdesk." }

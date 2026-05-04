@@ -9,7 +9,6 @@ import {
   startOfQuarter, 
   startOfYear, 
   isWithinInterval, 
-  subDays, 
   endOfDay,
   startOfDay,
   format
@@ -40,7 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
+import { Calendar, CalendarProps } from "@/components/ui/calendar"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
@@ -54,6 +53,9 @@ import {
 } from "@/app/_lib/data-service"
 import TicketForm from "./TicketForm"
 import TicketModalButton from "./TicketModalButton"
+
+type DateRange = { from: Date | undefined; to?: Date | undefined }
+type CalendarOnSelect = (range: DateRange | undefined) => void
 
 const statusOptions: TicketStatus[] = ["Open", "In Progress", "Resolved", "Closed"]
 const priorityOptions: TicketPriority[] = ["Low", "Medium", "High", "Urgent"]
@@ -97,7 +99,7 @@ export default function TicketsTable() {
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "All">("All")
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "All">("All")
   const [timeRange, setTimeRange] = useState<TimeRange>("All")
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
   })
@@ -478,7 +480,7 @@ export default function TicketsTable() {
                     mode="range"
                     defaultMonth={dateRange.from}
                     selected={{ from: dateRange.from, to: dateRange.to }}
-                    onSelect={(range: any) => setDateRange(range || { from: undefined, to: undefined })}
+                    onSelect={(range) => setDateRange((range as DateRange) || { from: undefined, to: undefined })}
                     numberOfMonths={2}
                   />
                 </PopoverContent>

@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bell, LayoutDashboard, Settings, Ticket } from "lucide-react"
+import { Bell, LayoutDashboard, Settings, Ticket, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const items = [
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { href: "/tickets", label: "Tickets", Icon: Ticket },
+  { href: "/reports", label: "Reports", Icon: BarChart3 },
   { href: "/notifications", label: "Alerts", Icon: Bell },
   { href: "/admin/settings", label: "Profile", Icon: Settings },
 ] as const
@@ -42,7 +43,7 @@ export default function BottomNav() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 md:hidden">
       <div className="w-full rounded-t-3xl border-t border-zinc-200 bg-white/90 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/90">
-        <nav className="grid grid-cols-4 gap-1 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <nav className="grid grid-cols-5 gap-1 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {items.map(({ href, label, Icon }) => {
             const active = pathname === href
             const isNotifications = href === "/notifications"

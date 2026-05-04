@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { LayoutDashboard, Settings, Ticket, PanelLeft, PanelRight } from 'lucide-react'
+import { LayoutDashboard, Settings, Ticket, PanelLeft, PanelRight, BarChart3 } from 'lucide-react'
 import { Bell } from 'lucide-react'
 import Image from "next/image"
 
@@ -126,6 +126,9 @@ export default function SideBarNav() {
             </NavLink>
             <NavLink href='/tickets' label="Tickets" isActive={pathname === '/tickets'} isSidebarHovered={expanded}>
               <Ticket className={iconClass(pathname === '/tickets')} />
+            </NavLink>
+            <NavLink href='/reports' label="Reports" isActive={pathname === '/reports'} isSidebarHovered={expanded}>
+              <BarChart3 className={iconClass(pathname === '/reports')} />
             </NavLink>
             <NavLink href='/notifications' label="Notifications" isActive={pathname === '/notifications'} isSidebarHovered={expanded}>
               <div className="relative">

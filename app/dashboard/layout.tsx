@@ -17,7 +17,9 @@ export default function DashboardLayout({
         <AuthGate>
           <div className="min-h-screen bg-gradient-to-b from-[#eef3ff] via-white to-white dark:bg-[#0b0f14] dark:bg-none">
             <TopBar />
-            <div className="p-2 md:p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6">{children}</div>
+            <div className="mx-auto w-full max-w-[1600px] p-2 md:p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-6">
+              {children}
+            </div>
           </div>
         </AuthGate>
       </main>

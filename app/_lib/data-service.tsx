@@ -73,6 +73,24 @@ export const updateTicketStatus = async (id: number, newStatus: TicketStatus) =>
   return data as Ticket;
 };
 
+export const closeExpiredTickets = async () => {
+  const twoDaysAgo = new Date();
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+  const { data, error } = await supabase
+    .from("tickets")
+    .update({ status: "Closed" })
+    .eq("status", "Open")
+    .lt("created_at", twoDaysAgo.toISOString())
+    .select();
+
+  if (error) {
+    throw new Error("Failed to auto-close tickets: " + error.message);
+  }
+
+  return data as Ticket[];
+};
+
 const escapeCsv = (value: unknown) => {
   const str = value === null || value === undefined ? "" : String(value);
   const needsQuotes = /[",\n]/.test(str);

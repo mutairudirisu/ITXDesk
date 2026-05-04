@@ -31,7 +31,9 @@ const toastVariants = cva(
       variant: {
         default: "border bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50",
         destructive:
-          "destructive group border-red-500 text-zinc-50 dark:border-red-900 dark:bg-red-900 dark:text-zinc-50",
+          "destructive group border-red-500 border-l-4 text-zinc-50 dark:border-red-900 dark:bg-red-900 dark:text-zinc-50",
+        success:
+          "success group border-emerald-500 border-l-4 bg-white text-zinc-950 dark:border-emerald-900 dark:bg-zinc-950 dark:text-zinc-50",
       },
     },
     defaultVariants: {
@@ -77,7 +79,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-1 top-1 rounded-md p-1 text-zinc-950/50 opacity-0 transition-opacity hover:text-zinc-950 focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600 dark:text-zinc-50/50 dark:hover:text-zinc-50",
+      "absolute right-1 top-1 rounded-md p-1 text-zinc-950/50 opacity-0 transition-opacity hover:text-zinc-950 focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600 group-[.success]:text-emerald-300 group-[.success]:hover:text-emerald-50 dark:text-zinc-50/50 dark:hover:text-zinc-50",
       className
     )}
     toast-close=""
@@ -94,7 +96,7 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
-    className={cn("text-sm font-semibold [&+div]:text-xs", className)}
+    className={cn("text-sm font-semibold [&+div]:text-xs group-[.success]:text-emerald-600 dark:group-[.success]:text-emerald-400", className)}
     {...props}
   />
 ))

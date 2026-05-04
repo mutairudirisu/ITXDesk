@@ -42,7 +42,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
     if (pathname === "/dashboard") return { title: "Dashboard", subtitle: "Overview of tickets and activity." }
     if (pathname === "/tickets") return { title: "Tickets", subtitle: "Log requests, track progress, and export data." }
     if (pathname === "/notifications") return { title: "Notifications", subtitle: "Updates from ticket activity." }
-    if (pathname === "/admin/settings") return { title: "Settings", subtitle: "Manage your session and application preferences." }
+    if (pathname === "/admin/settings") return { title: "Profile Settings", subtitle: "Manage your profile, security, and application preferences." }
     if (pathname?.startsWith("/admin")) return { title: "Admin", subtitle: "Manage ITX Helpdesk." }
     return { title: "ITX Helpdesk", subtitle: undefined }
   })()
@@ -179,7 +179,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             <DropdownMenuItem asChild>
               <Link href="/admin/settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                Settings
+                Profile Settings
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onSignOut} className="flex items-center gap-2">

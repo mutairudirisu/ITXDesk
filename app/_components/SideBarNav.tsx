@@ -135,7 +135,7 @@ export default function SideBarNav() {
                 ) : null}
               </div>
             </NavLink>
-            <NavLink href='/admin/settings' label="Settings" isActive={pathname === '/admin/settings'} isSidebarHovered={expanded}>
+            <NavLink href='/admin/settings' label="Profile Settings" isActive={pathname === '/admin/settings'} isSidebarHovered={expanded}>
               <Settings className={iconClass(pathname === '/admin/settings')} />
             </NavLink>
           </div>

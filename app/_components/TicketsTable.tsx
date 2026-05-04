@@ -2,7 +2,18 @@
 
 import { useMemo, useState } from "react"
 import useSWR, { mutate } from "swr"
-import { MoreHorizontal, Download, Loader2 } from "lucide-react"
+import { MoreHorizontal, Download, Loader2, Calendar as CalendarIcon } from "lucide-react"
+import { 
+  startOfWeek, 
+  startOfMonth, 
+  startOfQuarter, 
+  startOfYear, 
+  isWithinInterval, 
+  subDays, 
+  endOfDay,
+  startOfDay,
+  format
+} from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,7 +39,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 import {
   getTickets,
@@ -46,6 +60,7 @@ const priorityOptions: TicketPriority[] = ["Low", "Medium", "High", "Urgent"]
 
 type ExportFormat = "csv" | "xlsx" | "pdf"
 type SortOption = "created_desc" | "created_asc"
+type TimeRange = "All" | "Weekly" | "Monthly" | "Quarterly" | "Yearly" | "Custom"
 
 const descriptionPreview = (description: string | null) => {
   const v = (description ?? "").trim().replaceAll(/\s+/g, " ")
@@ -81,6 +96,11 @@ export default function TicketsTable() {
   const [query, setQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "All">("All")
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "All">("All")
+  const [timeRange, setTimeRange] = useState<TimeRange>("All")
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  })
   const [sortBy, setSortBy] = useState<SortOption>("created_desc")
   const [createOpen, setCreateOpen] = useState(false)
   const [exporting, setExporting] = useState<ExportFormat | null>(null)
@@ -88,9 +108,37 @@ export default function TicketsTable() {
   const filtered = useMemo(() => {
     const all = data ?? []
     const q = query.trim().toLowerCase()
+    const now = new Date()
+
     return all.filter((t) => {
       if (statusFilter !== "All" && t.status !== statusFilter) return false
       if (priorityFilter !== "All" && t.priority !== priorityFilter) return false
+
+      // Time range filter
+      if (timeRange !== "All") {
+        const ticketDate = new Date(t.created_at)
+        let start: Date | undefined
+        let end: Date = endOfDay(now)
+
+        if (timeRange === "Weekly") {
+          start = startOfWeek(now, { weekStartsOn: 1 }) // Monday
+          // Monday - Friday check
+          const day = ticketDate.getDay()
+          if (day === 0 || day === 6) return false // Skip Sat/Sun
+        } else if (timeRange === "Monthly") {
+          start = startOfMonth(now)
+        } else if (timeRange === "Quarterly") {
+          start = startOfQuarter(now)
+        } else if (timeRange === "Yearly") {
+          start = startOfYear(now)
+        } else if (timeRange === "Custom" && dateRange.from && dateRange.to) {
+          start = startOfDay(dateRange.from)
+          end = endOfDay(dateRange.to)
+        }
+
+        if (start && !isWithinInterval(ticketDate, { start, end })) return false
+      }
+
       if (!q) return true
 
       const haystack = [
@@ -107,7 +155,7 @@ export default function TicketsTable() {
 
       return haystack.includes(q)
     })
-  }, [data, priorityFilter, query, statusFilter])
+  }, [data, priorityFilter, query, statusFilter, timeRange, dateRange])
 
   const sorted = useMemo(() => {
     const copy = [...filtered]
@@ -126,7 +174,7 @@ export default function TicketsTable() {
       toast({
         title: "Updated",
         description: `Ticket marked as ${next}.`,
-        variant: "default",
+        variant: "success",
       })
     } catch {
       toast({
@@ -151,7 +199,7 @@ export default function TicketsTable() {
 
     try {
       await navigator.clipboard.writeText(lines.join("\n"))
-      toast({ title: "Copied", description: "Ticket details copied to clipboard." })
+      toast({ title: "Copied", description: "Ticket details copied to clipboard.", variant: "success" })
     } catch {
       toast({ title: "Error", description: "Failed to copy ticket details.", variant: "destructive" })
     }
@@ -345,7 +393,7 @@ export default function TicketsTable() {
             placeholder="Search tickets..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full lg:max-w-[320px] bg-white/70 dark:bg-[#0b0f14] dark:text-zinc-50 dark:border-zinc-800"
+            className="w-full lg:max-w-[280px] bg-white/70 dark:bg-[#0b0f14] dark:text-zinc-50 dark:border-zinc-800"
           />
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <Select
@@ -354,7 +402,7 @@ export default function TicketsTable() {
                 if (v === "All" || isTicketStatus(v)) setStatusFilter(v)
               }}
             >
-              <SelectTrigger className="w-full sm:w-[160px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+              <SelectTrigger className="w-full sm:w-[130px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -373,7 +421,7 @@ export default function TicketsTable() {
                 if (v === "All" || isTicketPriority(v)) setPriorityFilter(v)
               }}
             >
-              <SelectTrigger className="w-full sm:w-[160px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+              <SelectTrigger className="w-full sm:w-[130px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
                 <SelectValue placeholder="Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -386,13 +434,64 @@ export default function TicketsTable() {
               </SelectContent>
             </Select>
 
+            <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+              <SelectTrigger className="w-full sm:w-[140px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+                <SelectValue placeholder="Time Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Time</SelectItem>
+                <SelectItem value="Weekly">Weekly (Mon-Fri)</SelectItem>
+                <SelectItem value="Monthly">Monthly</SelectItem>
+                <SelectItem value="Quarterly">Quarterly</SelectItem>
+                <SelectItem value="Yearly">Yearly</SelectItem>
+                <SelectItem value="Custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {timeRange === "Custom" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "h-9 justify-start text-left font-normal bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800 sm:w-[220px]",
+                      !dateRange.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd")
+                      )
+                    ) : (
+                      <span>Pick a range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange.from}
+                    selected={{ from: dateRange.from, to: dateRange.to }}
+                    onSelect={(range: any) => setDateRange(range || { from: undefined, to: undefined })}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+
             <Select
               value={sortBy}
               onValueChange={(v) => {
                 if (v === "created_desc" || v === "created_asc") setSortBy(v)
               }}
             >
-              <SelectTrigger className="w-full sm:w-[170px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
+              <SelectTrigger className="w-full sm:w-[140px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>

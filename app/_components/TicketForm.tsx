@@ -213,7 +213,7 @@ export default function TicketForm({ onClose }: TicketFormProps) {
       toast({
         title: "Success",
         description: "Ticket created successfully.",
-        variant: "default",
+        variant: "success",
       })
 
       form.reset()

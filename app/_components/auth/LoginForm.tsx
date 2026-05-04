@@ -67,7 +67,7 @@ export default function LoginForm() {
       toast({
         title: 'Success',
         description: 'Logged in successfully',
-        variant: 'default'
+        variant: 'success'
       });
 
       if (data.user) {
@@ -97,7 +97,7 @@ export default function LoginForm() {
       toast({
         title: 'Password Reset Email Sent',
         description: 'Check your email for the password reset link',
-        variant: 'default'
+        variant: 'success'
       });
       setShowForgotPassword(false);
     } catch {

@@ -77,7 +77,7 @@ export default function ResetPasswordPage() {
     toast({
       title: "Password updated",
       description: "You can now sign in with your new password.",
-      variant: "default",
+      variant: "success",
     })
     router.replace("/login")
     router.refresh()

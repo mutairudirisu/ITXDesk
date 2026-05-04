@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/app/_lib/supabase"
 import { useRouter } from "next/navigation"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { User } from "lucide-react"
 
 export default function SettingsPage() {
   const { toast } = useToast()
@@ -79,6 +81,7 @@ export default function SettingsPage() {
       toast({
         title: "Saved",
         description: "Profile updated successfully.",
+        variant: "success",
       })
       router.refresh()
     } catch {
@@ -126,7 +129,7 @@ export default function SettingsPage() {
       const { error: updateErr } = await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
       if (updateErr) throw updateErr
 
-      toast({ title: "Uploaded", description: "Profile picture updated." })
+      toast({ title: "Uploaded", description: "Profile picture updated.", variant: "success" })
       router.refresh()
     } catch (err) {
       const message =
@@ -167,6 +170,7 @@ export default function SettingsPage() {
       toast({
         title: "Updated",
         description: "Password changed successfully.",
+        variant: "success",
       })
     } catch {
       toast({
@@ -196,6 +200,7 @@ export default function SettingsPage() {
       toast({
         title: "Enabled",
         description: "Notifications are now enabled on this device.",
+        variant: "success",
       })
       return
     }
@@ -222,11 +227,47 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-bold tracking-tight">Profile Settings</h1>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          Manage your account settings and profile preferences.
+        </p>
+      </div>
+
       <Card className="max-w-2xl bg-white/80 backdrop-blur dark:bg-zinc-950/60">
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
+          <CardTitle className="">Profile Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          <div className="flex flex-col items-center gap-4 sm:flex-row">
+            <Avatar className="h-24 w-24 border-2 border-zinc-100 dark:border-zinc-800">
+              <AvatarImage src={avatarUrl} alt={firstName} />
+              <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800">
+                <User className="h-12 w-12 text-zinc-400" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 space-y-2 text-center sm:text-left">
+              <Label className="text-base font-medium">Profile picture</Label>
+              <div className="flex flex-col items-center gap-2 sm:flex-row">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingAvatar || loading}
+                  className="w-full max-w-[250px] bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) void onUploadAvatar(file)
+                    e.currentTarget.value = ""
+                  }}
+                />
+                {uploadingAvatar && <span className="text-xs text-zinc-500 animate-pulse">Uploading...</span>}
+              </div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                JPG, GIF or PNG. Max size of 5MB.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label>Email</Label>
@@ -252,32 +293,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Profile picture</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              disabled={uploadingAvatar || loading}
-              className="bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) void onUploadAvatar(file)
-                e.currentTarget.value = ""
-              }}
-            />
-            <div className="text-xs text-zinc-600 dark:text-zinc-400">
-              Choose an image from your gallery to set as your profile picture.
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Avatar URL</Label>
-            <Input
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://..."
-              className="bg-white/70 dark:bg-[#0b0f14] dark:border-zinc-800"
-            />
-          </div>
           <div className="flex justify-end">
             <Button onClick={onSaveProfile} disabled={savingProfile || loading}>
               {savingProfile ? "Saving..." : "Save Profile"}

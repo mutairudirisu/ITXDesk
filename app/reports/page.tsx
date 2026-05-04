@@ -13,7 +13,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar, CalendarProps } from "@/components/ui/calendar"
+import { Calendar } from "@/components/ui/calendar"
 import { format, startOfMonth, endOfMonth, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import { getTickets, type Ticket } from "@/app/_lib/data-service"
@@ -21,7 +21,6 @@ import { useToast } from "@/hooks/use-toast"
 
 type ViewType = "html" | "pdf" | "excel"
 type DateRange = { from: Date | undefined; to?: Date | undefined }
-type CalendarOnSelect = (range: DateRange | undefined) => void
 
 const months = [
   { label: "January", value: "0" },
@@ -142,9 +141,20 @@ export default function ReportsPage() {
         
         toast({ title: "Success", description: "Excel report generated.", variant: "success" })
       } else if (viewType === "pdf") {
-        const jspdfModule = (await import("jspdf")) as unknown as { jsPDF: any }
-        const autotableModule = (await import("jspdf-autotable")) as unknown as { autoTable?: any; default?: any }
-        const autoTable = (autotableModule.autoTable ?? autotableModule.default)
+        interface JsPDFInstance {
+          setFontSize: (size: number) => void
+          text: (text: string, x: number, y: number) => void
+          setTextColor: (color: number) => void
+          addImage: (data: string, type: string, x: number, y: number, w: number, h: number) => void
+          save: (filename: string) => void
+        }
+
+        const jspdfModule = (await import("jspdf")) as unknown as { jsPDF: new (options?: Record<string, unknown>) => JsPDFInstance }
+        const autotableModule = (await import("jspdf-autotable")) as unknown as { 
+          autoTable?: (doc: JsPDFInstance, options: Record<string, unknown>) => void
+          default?: (doc: JsPDFInstance, options: Record<string, unknown>) => void 
+        }
+        const autoTable = (autotableModule.autoTable ?? autotableModule.default) as (doc: JsPDFInstance, options: Record<string, unknown>) => void
         
         const doc = new jspdfModule.jsPDF({ orientation: "landscape" })
 

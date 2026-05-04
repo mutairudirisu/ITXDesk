@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar, CalendarProps } from "@/components/ui/calendar"
+import { Calendar } from "@/components/ui/calendar"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
@@ -55,7 +55,6 @@ import TicketForm from "./TicketForm"
 import TicketModalButton from "./TicketModalButton"
 
 type DateRange = { from: Date | undefined; to?: Date | undefined }
-type CalendarOnSelect = (range: DateRange | undefined) => void
 
 const statusOptions: TicketStatus[] = ["Open", "In Progress", "Resolved", "Closed"]
 const priorityOptions: TicketPriority[] = ["Low", "Medium", "High", "Urgent"]

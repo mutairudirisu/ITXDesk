@@ -238,7 +238,7 @@ export default function ReportsPage() {
                 type="button"
                 onClick={() => setSelectionMode("month-year")}
                 className={`px-4 py-2 text-xs font-medium border border-zinc-200 rounded-l-md hover:bg-zinc-100 focus:z-10 focus:ring-2 focus:ring-[#0074de] transition-colors ${
-                  selectionMode === "month-year" ? "bg-zinc-400 text-white border-zinc-400" : "bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
+                  selectionMode === "month-year" ? "bg-[#0074de] text-white border-[#0074de]" : "bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
                 }`}
               >
                 Month & Year

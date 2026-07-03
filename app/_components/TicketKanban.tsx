@@ -25,7 +25,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { getTickets, updateTicketStatus, type Ticket } from "@/app/_lib/data-service"
-import { getStatusBadgeClass, getPriorityBadgeClass, STATUS_OPTIONS } from "@/lib/ticket-utils"
+import { getStatusBadgeClass, getPriorityBadgeClass, STATUS_OPTIONS, isTicketStatus } from "@/lib/ticket-utils"
 
 interface SortableTicketProps {
   ticket: Ticket
@@ -111,11 +111,12 @@ export default function TicketKanban() {
 
     // Find which column the dragged ticket is coming from
     let sourceColumn = activeTicket.status
-    let destinationColumn: string | null = null
+    let destinationColumn: Ticket["status"] | null = null
 
     // Check if over is a column ID
-    if (STATUS_OPTIONS.includes(over.id as string)) {
-      destinationColumn = over.id as string
+    const overIdStr = over.id as string
+    if (isTicketStatus(overIdStr)) {
+      destinationColumn = overIdStr
     } else {
       // If over is a ticket, get its column
       const overTicket = tickets?.find(t => t.id === over.id)

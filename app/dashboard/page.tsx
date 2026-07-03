@@ -8,13 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 import { getTickets, type Ticket } from "@/app/_lib/data-service"
-
-const statusVariant = (status: Ticket["status"]) => {
-  if (status === "Open") return "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200"
-  if (status === "In Progress") return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200"
-  if (status === "Resolved") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
-  return "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
-}
+import { getStatusBadgeClass } from "@/lib/ticket-utils"
 
 const pct = (value: number, total: number) => {
   if (!total) return 0
@@ -200,7 +194,7 @@ export default function DashboardPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="font-mono text-xs text-zinc-600 dark:text-zinc-400">#{t.id}</div>
-                      <Badge className={statusVariant(t.status)}>{t.status}</Badge>
+                      <Badge className={getStatusBadgeClass(t.status)}>{t.status}</Badge>
                     </div>
                     <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">{t.title}</div>
                     <div className="text-xs text-zinc-600 dark:text-zinc-400">

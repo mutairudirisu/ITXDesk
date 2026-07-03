@@ -53,21 +53,43 @@ import {
 } from "@/app/_lib/data-service"
 import TicketForm from "./TicketForm"
 import TicketModalButton from "./TicketModalButton"
-import {
-  STATUS_OPTIONS,
-  PRIORITY_OPTIONS,
-  getStatusBadgeClass,
-  getPriorityBadgeClass,
-  isTicketStatus,
-  isTicketPriority,
-  getDescriptionPreview,
-} from "@/lib/ticket-utils"
 
 type DateRange = { from: Date | undefined; to?: Date | undefined }
+
+const statusOptions: TicketStatus[] = ["Open", "In Progress", "Resolved", "Closed"]
+const priorityOptions: TicketPriority[] = ["Low", "Medium", "High", "Urgent"]
 
 type ExportFormat = "csv" | "xlsx" | "pdf"
 type SortOption = "created_desc" | "created_asc"
 type TimeRange = "All" | "Weekly" | "Monthly" | "Quarterly" | "Yearly" | "Custom"
+
+const descriptionPreview = (description: string | null) => {
+  const v = (description ?? "").trim().replaceAll(/\s+/g, " ")
+  if (!v) return "—"
+  return v.length > 90 ? `${v.slice(0, 90)}…` : v
+}
+
+const isTicketStatus = (value: string): value is TicketStatus => {
+  return (statusOptions as readonly string[]).includes(value)
+}
+
+const isTicketPriority = (value: string): value is TicketPriority => {
+  return (priorityOptions as readonly string[]).includes(value)
+}
+
+const statusBadgeClass = (status: TicketStatus) => {
+  if (status === "Open") return "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200"
+  if (status === "In Progress") return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200"
+  if (status === "Resolved") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
+  return "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+}
+
+const priorityBadgeClass = (priority: TicketPriority) => {
+  if (priority === "Urgent") return "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200"
+  if (priority === "High") return "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-200"
+  if (priority === "Medium") return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200"
+  return "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+}
 
 export default function TicketsTable() {
   const { toast } = useToast()
@@ -386,7 +408,7 @@ export default function TicketsTable() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Status</SelectItem>
-                {STATUS_OPTIONS.map((s) => (
+                {statusOptions.map((s) => (
                   <SelectItem key={s} value={s}>
                     {s}
                   </SelectItem>
@@ -405,7 +427,7 @@ export default function TicketsTable() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Priority</SelectItem>
-                {PRIORITY_OPTIONS.map((p) => (
+                {priorityOptions.map((p) => (
                   <SelectItem key={p} value={p}>
                     {p}
                   </SelectItem>
@@ -547,13 +569,13 @@ export default function TicketsTable() {
                   </TableCell>
                   <TableCell className="font-medium">{t.title}</TableCell>
                   <TableCell className="text-sm text-zinc-700 dark:text-zinc-300">
-                    <span title={t.description ?? ""}>{getDescriptionPreview(t.description)}</span>
+                    <span title={t.description ?? ""}>{descriptionPreview(t.description)}</span>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusBadgeClass(t.status)}>{t.status}</Badge>
+                    <Badge className={statusBadgeClass(t.status)}>{t.status}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getPriorityBadgeClass(t.priority)}>{t.priority}</Badge>
+                    <Badge className={priorityBadgeClass(t.priority)}>{t.priority}</Badge>
                   </TableCell>
                   <TableCell>{t.category}</TableCell>
                   <TableCell className="text-sm text-zinc-700 dark:text-zinc-300">
@@ -577,7 +599,7 @@ export default function TicketsTable() {
                         <DropdownMenuItem onClick={() => void onCopyDetails(t)}>
                           Copy details
                         </DropdownMenuItem>
-                        {STATUS_OPTIONS.map((s) => (
+                        {statusOptions.map((s) => (
                           <DropdownMenuItem
                             key={s}
                             onClick={() => onUpdateStatus(t.id, s)}
